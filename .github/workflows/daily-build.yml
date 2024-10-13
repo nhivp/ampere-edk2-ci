@@ -1,0 +1,58 @@
+name: Daily Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # This is set to 0 UTC to match 7:00 AM UTC+7
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [RELEASE, DEBUG, NOOPT]
+        compiler: [GCC, CLANGDWARF]
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential uuid-dev iasl git nasm gcc-aarch64-linux-gnu
+          if [ "${{ matrix.compiler }}" = "CLANGDWARF" ]; then
+            sudo apt install -y clang lld llvm
+          fi
+
+      - name: Clone EDK2 sources
+        run: |
+          git clone --recurse-submodules --depth 1 https://github.com/tianocore/edk2.git
+          git clone --recurse-submodules --depth 1 https://github.com/tianocore/edk2-platforms.git
+          git clone --recurse-submodules --depth 1 https://github.com/tianocore/edk2-non-osi.git
+
+      - name: Build BaseTools
+        run: |
+          cd edk2
+          make -C BaseTools -j$(nproc)
+
+      - name: Build Jade ${{ matrix.build_type }} - ${{ matrix.compiler }}
+        run: |
+          export WORKSPACE=$PWD
+          export PACKAGES_PATH=$PWD/edk2:$PWD/edk2-platforms:$PWD/edk2-non-osi:$PWD/edk2-platforms/Features
+
+          if [ "${{ matrix.compiler }}" = "GCC" ]; then
+            export GCC_AARCH64_PREFIX=aarch64-linux-gnu-
+          fi
+
+          . edk2/edksetup.sh \
+              && build -a AARCH64 -t ${{ matrix.compiler }} -b ${{ matrix.build_type }} -n $(nproc) \
+              -D SECURE_BOOT_ENABLE \
+              -p edk2-platforms/Platform/Ampere/JadePkg/Jade.dsc
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jade-build-${{ matrix.build_type }}
+          path: Build/Jade/${{ matrix.build_type }}_${{ matrix.compiler }}/FV/*.fd
