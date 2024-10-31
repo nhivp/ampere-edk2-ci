@@ -10,6 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      # Do not cancel all jobs steps if a single one fails.
+      fail-fast: false
       matrix:
         build_type: [RELEASE, DEBUG, NOOPT]
         compiler: [GCC, CLANGDWARF]
