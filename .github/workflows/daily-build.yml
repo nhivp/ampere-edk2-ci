@@ -52,3 +52,9 @@ jobs:
               && build -a AARCH64 -t ${{ matrix.compiler }} -b ${{ matrix.build_type }} -n $(nproc) \
               -D SECURE_BOOT_ENABLE \
               -p edk2-platforms/Platform/Ampere/JadePkg/Jade.dsc
+
+          touch flashkernel
+          . edk2/edksetup.sh \
+              && build -a AARCH64 -t ${{ matrix.compiler }} -b ${{ matrix.build_type }} -n $(nproc) \
+              -D LINUXBOOT_FILE=flashkernel \
+              -p edk2-platforms/Platform/Ampere/JadePkg/JadeLinuxBoot.dsc
