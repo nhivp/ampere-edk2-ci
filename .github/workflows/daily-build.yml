@@ -52,9 +52,3 @@ jobs:
               && build -a AARCH64 -t ${{ matrix.compiler }} -b ${{ matrix.build_type }} -n $(nproc) \
               -D SECURE_BOOT_ENABLE \
               -p edk2-platforms/Platform/Ampere/JadePkg/Jade.dsc
-
-      - name: Archive build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: jade-build-${{ matrix.build_type }}
-          path: Build/Jade/${{ matrix.build_type }}_${{ matrix.compiler }}/FV/*.fd
